@@ -1,4 +1,9 @@
 package com.example.letsnosh
 
-interface ApiService {
+import com.example.letsnosh.data.Dish
+import retrofit2.http.GET
+
+interface DishApiService {
+    @GET("dev/nosh-assignment")
+    suspend fun getDishes(): List<Dish>
 }

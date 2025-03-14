@@ -1,3 +1,11 @@
 package com.example.letsnosh.data
 
-data class Dish()
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class Dish(
+    val dishName: String,
+    val dishId: String,
+    val imageUrl: String,
+    val isPublished: Boolean
+)
