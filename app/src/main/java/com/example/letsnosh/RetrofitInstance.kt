@@ -2,6 +2,7 @@ package com.example.letsnosh
 
 import kotlinx.serialization.json.Json
 import retrofit2.Retrofit
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import okhttp3.MediaType.Companion.toMediaType
 
 object RetrofitInstance {
@@ -12,11 +13,11 @@ object RetrofitInstance {
         ignoreUnknownKeys = true
     }
 
-//    val api: DishApiService by lazy {
-//        Retrofit.Builder()
-//            .baseUrl(BASE_URL)
-//            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-//            .build()
-//            .create(DishApiService::class.java)
-//    }
+    val api: DishApiService by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+            .build()
+            .create(DishApiService::class.java)
+    }
 }
