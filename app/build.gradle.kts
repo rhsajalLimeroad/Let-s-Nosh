@@ -67,6 +67,8 @@ dependencies {
     implementation(libs.material3)
     implementation(libs.okhttp)
     implementation(libs.retrofit2.kotlinx.serialization.converter)
+    implementation(libs.androidx.runtime.livedata)
+    implementation(libs.converter.gson)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
