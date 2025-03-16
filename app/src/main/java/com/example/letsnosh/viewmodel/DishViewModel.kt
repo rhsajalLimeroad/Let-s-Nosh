@@ -17,6 +17,9 @@ class DishViewModel : ViewModel() {
     private val _dishes = MutableLiveData<List<Dish>>()
     val dishes: LiveData<List<Dish>> get() = _dishes
 
+    private val _error = MutableLiveData<String>()
+    val error: LiveData<String> get() = _error
+
     fun loadDishes() {
         Log.d("kya mila?", "loadDishes")
         viewModelScope.launch {
@@ -26,7 +29,11 @@ class DishViewModel : ViewModel() {
                 }
                 Log.d("kya mila?", "viewModelScope ==> $response")
                 if (response != null) {
-                    _dishes.value = response!!
+                    if(response.isSuccessful && response.body() != null) {
+                        _dishes.postValue(response.body())
+                    } else {
+                        _error.postValue("Error: ${response.code()}")
+                    }
                 }
             } catch (e: Exception) {
                 Log.d("error", "Some error occurred ==> $e")
