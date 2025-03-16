@@ -7,7 +7,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.letsnosh.data.Dish
 import com.example.letsnosh.repository.DishRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class DishViewModel : ViewModel() {
     private val repository = DishRepository()
@@ -18,10 +20,16 @@ class DishViewModel : ViewModel() {
     fun loadDishes() {
         Log.d("kya mila?", "loadDishes")
         viewModelScope.launch {
-            val response = repository.fetchDishes()
-            Log.d("kya mila?", "viewModelScope ==> $response")
-            if (response != null) {
-                _dishes.value = response!!
+            try {
+                val response = withContext(Dispatchers.IO) {
+                    repository.fetchDishes()
+                }
+                Log.d("kya mila?", "viewModelScope ==> $response")
+                if (response != null) {
+                    _dishes.value = response!!
+                }
+            } catch (e: Exception) {
+                Log.d("error", "Some error occurred ==> $e")
             }
         }
     }
