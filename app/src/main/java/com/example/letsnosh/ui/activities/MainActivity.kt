@@ -55,6 +55,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemColors
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -199,7 +200,16 @@ private fun NavigationBar(modifier: Modifier = Modifier) {
                         )
                     },
                     selected = isSelected,
-                    onClick = { if (isSelected.not()) stayTunedToastMessage(ctx) }
+                    onClick = { if (isSelected.not()) stayTunedToastMessage(ctx) },
+                    colors = NavigationRailItemColors(
+                        selectedIconColor = Orange,
+                        selectedTextColor = Orange,
+                        selectedIndicatorColor = Color.White,
+                        unselectedIconColor = Blue,
+                        unselectedTextColor = Blue,
+                        disabledIconColor = Blue,
+                        disabledTextColor = Blue
+                    )
                 )
             }
         }
