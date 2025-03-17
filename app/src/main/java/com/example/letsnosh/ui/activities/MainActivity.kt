@@ -2,7 +2,6 @@ package com.example.letsnosh.ui.activities
 
 import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -34,10 +33,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Home
@@ -77,9 +77,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -90,6 +92,7 @@ import com.example.letsnosh.data.Dish
 import com.example.letsnosh.helper.CookingTimeBottomSheet
 import com.example.letsnosh.helper.DishStorageHelper
 import com.example.letsnosh.ui.theme.Blue
+import com.example.letsnosh.ui.theme.LightOrange
 import com.example.letsnosh.ui.theme.Orange
 import com.example.letsnosh.viewmodel.DishViewModel
 
@@ -101,7 +104,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         dishViewModel.loadDishes()
         setContent {
-            Log.d("kya mila?", "setContent")
             DishApp(dishViewModel = dishViewModel)
         }
     }
@@ -139,15 +141,21 @@ fun RecipeHubExpandedLayout(
     displayTimeSelector: MutableState<Boolean>,
     recipeTimeUpdateTrigger: MutableIntState? = null
 ) {
+    val error by dishViewModel.error.observeAsState(initial = null)
+    val cxt = LocalContext.current
+    error?.let {
+        LaunchedEffect(it) {
+            Toast.makeText(cxt, it, Toast.LENGTH_SHORT).show()
+        }
+    }
     Scaffold { padding ->
         Row {
-            LandscapeNavigationBar()
+            NavigationBar()
             RecipeExplorer(
                 modifier = Modifier.padding(padding),
                 dishViewModel = dishViewModel,
                 selectedIndex = activeRecipeIndex,
                 showBottomSheet = displayTimeSelector,
-                isLandscape = true,
                 rescheduleTrigger = recipeTimeUpdateTrigger
             )
         }
@@ -160,11 +168,9 @@ fun RecipeExplorer(
     dishViewModel: DishViewModel,
     selectedIndex: MutableIntState,
     showBottomSheet: MutableState<Boolean>,
-    isLandscape: Boolean = false,
     rescheduleTrigger: MutableIntState? = null
 ) {
     val availableRecipes by dishViewModel.dishes.observeAsState(initial = emptyList())
-    val error by dishViewModel.error.observeAsState(initial = null)
     val context = LocalContext.current
     val selectedScheduleRecipe = remember { mutableStateOf(DishStorageHelper(context).retrieveDishData()) }
 
@@ -175,26 +181,10 @@ fun RecipeExplorer(
         }
     }
 
-    // Show error if any
-    error?.let {
-        LaunchedEffect(it) {
-            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-        }
-    }
-
     Column(modifier.verticalScroll(rememberScrollState())) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Display appropriate header based on layout
-        if (isLandscape) {
-            ExpandedHeader(modifier = Modifier, selectedScheduleRecipe)
-        } else {
-            SearchField(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-            )
-        }
+        Header(modifier = Modifier, selectedScheduleRecipe)
 
         ContentSection(title = R.string.whats_on_your_mind) {
             CategoryCarousel()
@@ -210,13 +200,16 @@ fun RecipeExplorer(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        ActionButtonsRow()
+        BottomActionButtons()
     }
 }
 
 @Composable
 fun SearchField(modifier: Modifier = Modifier) {
     var queryText by rememberSaveable { mutableStateOf("") }
+    val ctx = LocalContext.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
 
     TextField(
         modifier = modifier
@@ -238,12 +231,23 @@ fun SearchField(modifier: Modifier = Modifier) {
         ),
         placeholder = {
             Text(text = stringResource(R.string.search_hint))
-        }
+        },
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Search
+        ),
+        keyboardActions = KeyboardActions(
+            onSearch = {
+                if(queryText.isNotBlank()) {
+                    stayTunedToastMessage(ctx, "You searched for $queryText")
+                }
+            },
+            onDone = { keyboardController?.hide() }
+        )
     )
 }
 
 @Composable
-fun ExpandedHeader(
+fun Header(
     modifier: Modifier = Modifier,
     selectedScheduleRecipe: MutableState<Dish?> = mutableStateOf(null)
 ) {
@@ -349,7 +353,7 @@ fun ContentSection(
     Column(modifier) {
         Text(
             text = stringResource(id = title),
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.bodyLarge,
             color = Blue,
             modifier = Modifier
                 .paddingFromBaseline(top = 40.dp, bottom = 16.dp)
@@ -501,7 +505,7 @@ fun RecipeCard(
                         .align(Alignment.BottomCenter)
                         .offset(y = 8.dp)
                         .background(
-                            color = Color(0xFFFFA500),
+                            color = LightOrange,
                             shape = RoundedCornerShape(12.dp)
                         ),
                     horizontalArrangement = Arrangement.Center,
@@ -537,17 +541,15 @@ fun RecipeCard(
                 textAlign = TextAlign.Center
             )
 
-            // Preparation info
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.AddCircle,
-                    contentDescription = "Time",
-                    tint = textColor,
-                    modifier = Modifier.size(16.dp)
+                Image(
+                    painter = painterResource(id = R.drawable.cooking),
+                    contentDescription = "barbeque image",
+                    modifier = Modifier.size(24.dp)
                 )
                 Text(
                     text = "$time · $difficulty prep.",
@@ -561,7 +563,7 @@ fun RecipeCard(
 }
 
 @Composable
-fun ActionButtonsRow() {
+fun BottomActionButtons() {
     val ctx = LocalContext.current
     Row(
         modifier = Modifier
@@ -608,7 +610,7 @@ fun ActionButtonsRow() {
 }
 
 @Composable
-private fun LandscapeNavigationBar(modifier: Modifier = Modifier) {
+private fun NavigationBar(modifier: Modifier = Modifier) {
     val ctx = LocalContext.current
 
     NavigationRail(

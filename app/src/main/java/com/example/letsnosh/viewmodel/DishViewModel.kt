@@ -21,19 +21,19 @@ class DishViewModel : ViewModel() {
     val error: LiveData<String> get() = _error
 
     fun loadDishes() {
-        Log.d("kya mila?", "loadDishes")
         viewModelScope.launch {
             try {
                 val response = withContext(Dispatchers.IO) {
                     repository.fetchDishes()
                 }
-                Log.d("kya mila?", "viewModelScope ==> $response")
                 if (response != null) {
                     if(response.isSuccessful && response.body() != null) {
                         _dishes.postValue(response.body())
                     } else {
                         _error.postValue("Error: ${response.code()}")
                     }
+                } else {
+                    _error.postValue("Some error occurred")
                 }
             } catch (e: Exception) {
                 Log.d("error", "Some error occurred ==> $e")

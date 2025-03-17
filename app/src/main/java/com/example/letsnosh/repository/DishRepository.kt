@@ -11,10 +11,8 @@ class DishRepository {
 
     suspend fun fetchDishes(): Response<List<Dish>>? {
         return try {
-            Log.d("kya mila?", "fetchDishes")
             api.getDishes()
         } catch (e: Exception) {
-            Log.d("kya mila?", "error ==> $e")
             e.printStackTrace()
             null
         }
