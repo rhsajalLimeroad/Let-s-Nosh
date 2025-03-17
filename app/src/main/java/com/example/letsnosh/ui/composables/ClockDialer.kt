@@ -1,4 +1,4 @@
-package com.example.letsnosh.helper
+package com.example.letsnosh.ui.composables
 
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Box

@@ -1,7 +1,6 @@
 package com.example.letsnosh.repository
 
-import android.util.Log
-import com.example.letsnosh.RetrofitInstance
+import com.example.letsnosh.repository.api.RetrofitInstance
 import com.example.letsnosh.data.Dish
 import retrofit2.Response
 

@@ -1,4 +1,4 @@
-package com.example.letsnosh.helper
+package com.example.letsnosh.ui.composables
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -39,10 +39,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.letsnosh.ui.theme.Blue
+import com.example.letsnosh.ui.theme.BluishWhite
 import com.example.letsnosh.ui.theme.Orange
 import kotlinx.coroutines.launch
 
@@ -53,34 +53,34 @@ fun CookingTimeBottomSheet(
     onDeleteClick: () -> Unit = {},
     onRescheduleClick: (selectedTime: String) -> Unit = {},
     onCookNowClick: () -> Unit = {},
-    selectedPeriod: String = "AM",
+    scheduledMeridian: String = "AM",
     onDismissRequest: () -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val coroutineScope = rememberCoroutineScope()
-    var selectedTime by remember { mutableStateOf("") }
+    var scheduledTime by remember { mutableStateOf("") }
 
-    Scaffold { innerPadding ->
+    Scaffold { padding ->
         ModalBottomSheet(
             modifier = modifier
-                .padding(innerPadding)
+                .padding(padding)
                 .widthIn(max = 400.dp),
             onDismissRequest = onDismissRequest,
             sheetState = sheetState,
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
             containerColor = Color.White,
             content = {
-                ScheduleCookingTimeContent(
+                BottomSheetContent(
                     onDeleteClick = onDeleteClick,
-                    onRescheduleClick = { onRescheduleClick(selectedTime) },
+                    onRescheduleClick = { onRescheduleClick(scheduledTime) },
                     onCookNowClick = onCookNowClick,
-                    selectedPeriod = selectedPeriod,
+                    scheduledMeridian = scheduledMeridian,
                     onCloseClick = {
                         coroutineScope.launch { sheetState.hide() }
                         onDismissRequest()
                     },
-                    onTimeSelected = { selectedTime1 ->
-                        selectedTime =  selectedTime1
+                    onTimeSelected = {
+                        scheduledTime =  it
                     }
                 )
             }
@@ -90,17 +90,17 @@ fun CookingTimeBottomSheet(
 
 
 @Composable
-fun ScheduleCookingTimeContent(
+fun BottomSheetContent(
     onDeleteClick: () -> Unit = {},
     onRescheduleClick: () -> Unit = {},
     onCookNowClick: () -> Unit = {},
-    selectedPeriod: String = "AM",
+    scheduledMeridian: String = "AM",
     onCloseClick: () -> Unit = {},
     onTimeSelected: (String) -> Unit = {}
 ) {
     var selectedHour by remember { mutableIntStateOf(6) }
     var selectedMinute by remember { mutableIntStateOf(30) }
-    var selectedPeriodState by remember { mutableStateOf(selectedPeriod) }
+    val selectedMeridianState by remember { mutableStateOf(scheduledMeridian) }
 
     Column(
         modifier = Modifier
@@ -108,37 +108,61 @@ fun ScheduleCookingTimeContent(
             .fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        ScheduleCookingTimeHeader(onCloseClick = onCloseClick)
+        Header(onCloseClick = onCloseClick)
 
-        ScheduleCookingTimeSelector(
-            initialSelectedPeriod = selectedPeriodState,
-            onPeriodChange = {
-                selectedPeriodState = it
-                onTimeSelected("$selectedHour:${String.format("%02d", selectedMinute)} $selectedPeriodState")
-            },
+        TimeSelectionView(
+            initialSelectedPeriod = selectedMeridianState,
+            onPeriodChange = { period -> updateSelectedTime(selectedHour, selectedMinute, period, onTimeSelected) },
             onHourChange = { hour ->
-                selectedHour = hour-1
-                onTimeSelected("$selectedHour:${String.format("%02d", selectedMinute)} $selectedPeriodState")
+                selectedHour = hour - 1
+                updateSelectedTime(selectedHour, selectedMinute, selectedMeridianState, onTimeSelected)
             },
             onMinuteChange = { minute ->
-                selectedMinute = minute-1
-                onTimeSelected("$selectedHour:${String.format("%02d", selectedMinute)} $selectedPeriodState")
+                selectedMinute = minute - 1
+                updateSelectedTime(selectedHour, selectedMinute, selectedMeridianState, onTimeSelected)
             }
         )
 
-        ScheduleCookingTimeActions(
-            onDeleteClick = onDeleteClick,
-            onRescheduleClick = {
-                onRescheduleClick()
-                onCloseClick()
-            },
-            onCookNowClick = onCookNowClick
-        )
+        Row(
+            modifier = Modifier.padding(vertical = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            TextButton(onClick = onDeleteClick) {
+                Text(
+                    "Delete",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        textDecoration = TextDecoration.Underline
+                    )
+                )
+            }
+
+            OutlinedButton(
+                modifier = Modifier.padding(start = 16.dp),
+                onClick = onRescheduleClick,
+                colors = ButtonDefaults.outlinedButtonColors(
+                    contentColor = Orange
+                ),
+                border = BorderStroke(1.dp, Orange),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Re-schedule")
+            }
+
+            Button(
+                modifier = Modifier.padding(start = 16.dp),
+                onClick = onCookNowClick,
+                colors = ButtonDefaults.buttonColors(containerColor = Orange),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Cook Now", color = Color.White)
+            }
+        }
     }
 }
 
 @Composable
-fun ScheduleCookingTimeHeader(onCloseClick: () -> Unit) {
+fun Header(onCloseClick: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -153,8 +177,8 @@ fun ScheduleCookingTimeHeader(onCloseClick: () -> Unit) {
         IconButton(
             onClick = onCloseClick,
             modifier = Modifier
-                .border(1.dp, shape = CircleShape, color = Blue)
-                .size(30.dp)
+                .border(2.dp, shape = CircleShape, color = Blue)
+                .size(32.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Close,
@@ -166,7 +190,7 @@ fun ScheduleCookingTimeHeader(onCloseClick: () -> Unit) {
 }
 
 @Composable
-fun ScheduleCookingTimeSelector(
+fun TimeSelectionView(
     initialSelectedPeriod: String = "AM",
     onPeriodChange: (String) -> Unit = {},
     onHourChange: (Int) -> Unit = {},
@@ -182,7 +206,7 @@ fun ScheduleCookingTimeSelector(
             onMinuteChange = onMinuteChange
         )
 
-        AMPMToggle(
+        MeridianToggle(
             modifier = Modifier,
             initialSelected = initialSelectedPeriod,
             onSelectionChange = onPeriodChange
@@ -243,56 +267,9 @@ fun TimePicker(
 }
 
 @Composable
-fun ScheduleCookingTimeActions(
-    onDeleteClick: () -> Unit,
-    onRescheduleClick: () -> Unit,
-    onCookNowClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier.padding(vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        // Delete Button
-        TextButton(onClick = onDeleteClick) {
-            Text(
-                "Delete",
-                color = Color.Red,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    textDecoration = TextDecoration.Underline
-                )
-            )
-        }
-
-        // Reschedule Button
-        OutlinedButton(
-            modifier = Modifier.padding(start = 16.dp),
-            onClick = onRescheduleClick,
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Orange
-            ),
-            border = BorderStroke(1.dp, Orange),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Re-schedule")
-        }
-
-        // Cook Now Button
-        Button(
-            modifier = Modifier.padding(start = 16.dp),
-            onClick = onCookNowClick,
-            colors = ButtonDefaults.buttonColors(containerColor = Orange),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Cook Now", color = Color.White)
-        }
-    }
-}
-
-
-@Composable
-fun AMPMToggle(
+fun MeridianToggle(
     modifier: Modifier = Modifier,
-    initialSelected: String = "AM",
+    initialSelected: String = "PM",
     onSelectionChange: (String) -> Unit = {}
 ) {
     var selected by remember { mutableStateOf(initialSelected) }
@@ -330,11 +307,19 @@ fun ToggleButton(
     TextButton(
         onClick = onClick,
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) Color(0xFFE8ECF8) else Blue,
+            containerColor = if (isSelected) Blue else BluishWhite,
             contentColor = if (isSelected) Color.White else Blue
         ),
         shape = RoundedCornerShape(8.dp)
     ) {
-        Text(label, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal)
+        Text(
+            label,
+            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+        )
     }
+}
+
+private fun updateSelectedTime(hour: Int, minute: Int, period: String, onTimeSelected: (String) -> Unit) {
+    val formattedMinute = String.format("%02d", minute)
+    onTimeSelected("$hour:$formattedMinute $period")
 }

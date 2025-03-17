@@ -15,6 +15,8 @@ class DishStorageHelper(context: Context) {
     private val preferences = context.getSharedPreferences(Constants.STORAGE_NAME, Context.MODE_PRIVATE)
     private val jsonConverter = Gson()
 
+    // Functions can be further used to store dish data
+
     fun storeDishData(dish: Dish) {
         val dishString = jsonConverter.toJson(dish)
         preferences.edit().apply {

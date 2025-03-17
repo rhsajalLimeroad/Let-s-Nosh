@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class DishViewModel : ViewModel() {
-    private val repository = DishRepository()
+    private val dishRepository = DishRepository()
 
     private val _dishes = MutableLiveData<List<Dish>>()
     val dishes: LiveData<List<Dish>> get() = _dishes
@@ -24,7 +24,7 @@ class DishViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val response = withContext(Dispatchers.IO) {
-                    repository.fetchDishes()
+                    dishRepository.fetchDishes()
                 }
                 if (response != null) {
                     if(response.isSuccessful && response.body() != null) {

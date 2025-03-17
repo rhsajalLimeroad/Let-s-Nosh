@@ -1,4 +1,4 @@
-package com.example.letsnosh
+package com.example.letsnosh.repository.api
 
 import com.example.letsnosh.data.Dish
 import retrofit2.Response

@@ -1,4 +1,4 @@
-package com.example.letsnosh
+package com.example.letsnosh.repository.api
 
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory

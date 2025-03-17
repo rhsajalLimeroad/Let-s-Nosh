@@ -67,7 +67,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -89,9 +88,9 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.letsnosh.R
 import com.example.letsnosh.data.Dish
-import com.example.letsnosh.helper.CookingTimeBottomSheet
-import com.example.letsnosh.helper.DishStorageHelper
+import com.example.letsnosh.ui.composables.CookingTimeBottomSheet
 import com.example.letsnosh.ui.theme.Blue
+import com.example.letsnosh.ui.theme.DarkBlue
 import com.example.letsnosh.ui.theme.LightOrange
 import com.example.letsnosh.ui.theme.Orange
 import com.example.letsnosh.viewmodel.DishViewModel
@@ -112,86 +111,122 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun DishApp(dishViewModel: DishViewModel) {
     val activeRecipeIndex = rememberSaveable { mutableIntStateOf(-1) }
-    val displayTimeSelector = rememberSaveable { mutableStateOf(false) }
-    val recipeTimeUpdateTrigger = rememberSaveable { mutableIntStateOf(0) }
+    val selectTimeForCooking = rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // Bottom sheet logic
-    if (displayTimeSelector.value && activeRecipeIndex.intValue != -1) {
+    if (selectTimeForCooking.value && activeRecipeIndex.intValue != -1) {
         CookingTimeBottomSheet(
-            onRescheduleClick = {
-                dishViewModel.dishes.value?.get(activeRecipeIndex.intValue)?.let { dish ->
-                    DishStorageHelper(context).storeDishData(dish)
-                    recipeTimeUpdateTrigger.intValue++
-                }
-            },
-            onDismissRequest = { displayTimeSelector.value = false },
+            onDeleteClick = { stayTunedToastMessage(context) },
+            onRescheduleClick = { stayTunedToastMessage(context) },
             onCookNowClick = { stayTunedToastMessage(context) },
-            onDeleteClick = { stayTunedToastMessage(context) }
+            onDismissRequest = { selectTimeForCooking.value = false },
         )
     }
 
-    RecipeHubExpandedLayout(dishViewModel, activeRecipeIndex, displayTimeSelector, recipeTimeUpdateTrigger)
+    DishAppLayout(dishViewModel, activeRecipeIndex, selectTimeForCooking)
 }
 
 @Composable
-fun RecipeHubExpandedLayout(
+fun DishAppLayout(
     dishViewModel: DishViewModel,
     activeRecipeIndex: MutableIntState,
-    displayTimeSelector: MutableState<Boolean>,
-    recipeTimeUpdateTrigger: MutableIntState? = null
+    selectTimeForCooking: MutableState<Boolean>,
 ) {
     val error by dishViewModel.error.observeAsState(initial = null)
     val cxt = LocalContext.current
+
     error?.let {
         LaunchedEffect(it) {
             Toast.makeText(cxt, it, Toast.LENGTH_SHORT).show()
         }
     }
+
     Scaffold { padding ->
         Row {
+
             NavigationBar()
-            RecipeExplorer(
+
+            AppContent(
                 modifier = Modifier.padding(padding),
                 dishViewModel = dishViewModel,
                 selectedIndex = activeRecipeIndex,
-                showBottomSheet = displayTimeSelector,
-                rescheduleTrigger = recipeTimeUpdateTrigger
+                showBottomSheet = selectTimeForCooking
             )
         }
     }
 }
 
+
 @Composable
-fun RecipeExplorer(
+private fun NavigationBar(modifier: Modifier = Modifier) {
+    val ctx = LocalContext.current
+
+    NavigationRail(
+        modifier = modifier.padding(horizontal = 8.dp),
+        containerColor = Color.White
+    ) {
+        Column(
+            modifier = modifier.fillMaxHeight(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            val navigationBarItems = listOf(
+                Triple(Icons.Default.Home, "Cook", true),
+                Triple(Icons.Default.FavoriteBorder, "Favorites", false),
+                Triple(Icons.Default.Home, "Manual", false),
+                Triple(Icons.Default.Phone, "Device", false),
+                Triple(Icons.Default.AccountCircle, "Preferences", false),
+                Triple(Icons.Default.Settings, "Settings", false)
+            )
+
+            navigationBarItems.forEachIndexed { index, (icon, label, isSelected) ->
+                if (index > 0) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                NavigationRailItem(
+                    icon = {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = label,
+                            tint = if (isSelected) Orange else Blue
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = label,
+                            color = if (isSelected) Orange else Blue
+                        )
+                    },
+                    selected = isSelected,
+                    onClick = { if (isSelected.not()) stayTunedToastMessage(ctx) }
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+fun AppContent(
     modifier: Modifier = Modifier,
     dishViewModel: DishViewModel,
     selectedIndex: MutableIntState,
     showBottomSheet: MutableState<Boolean>,
-    rescheduleTrigger: MutableIntState? = null
 ) {
     val availableRecipes by dishViewModel.dishes.observeAsState(initial = emptyList())
-    val context = LocalContext.current
-    val selectedScheduleRecipe = remember { mutableStateOf(DishStorageHelper(context).retrieveDishData()) }
-
-    // Update the scheduled recipe when reschedule happens
-    LaunchedEffect(rescheduleTrigger?.intValue) {
-        if (selectedIndex.intValue != -1) {
-            selectedScheduleRecipe.value = dishViewModel.dishes.value?.get(selectedIndex.intValue)
-        }
-    }
 
     Column(modifier.verticalScroll(rememberScrollState())) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        Header(modifier = Modifier, selectedScheduleRecipe)
+        Header()
 
-        ContentSection(title = R.string.whats_on_your_mind) {
+        Headings(title = R.string.whats_on_your_mind) {
             CategoryCarousel()
         }
 
-        ContentSection(title = R.string.recommendations) {
-            SuggestedRecipesRow(
+        Headings(title = R.string.recommendations) {
+            RecommendationsRail(
                 dishes = availableRecipes,
                 selectedIndex = selectedIndex,
                 showBottomSheet = showBottomSheet
@@ -205,7 +240,48 @@ fun RecipeExplorer(
 }
 
 @Composable
-fun SearchField(modifier: Modifier = Modifier) {
+fun Header(modifier: Modifier = Modifier) {
+    val ctx = LocalContext.current
+
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        SearchBar(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp)
+        )
+        ScheduledDish(
+            dishName = "Italian Spaghetti Pasta",
+            onClickNotification = { stayTunedToastMessage(ctx, "No new Notifications.") },
+            onClickLogOut = { stayTunedToastMessage(ctx) }
+        )
+    }
+}
+
+
+@Composable
+fun Headings(
+    modifier: Modifier = Modifier,
+    @StringRes title: Int,
+    followingComposable: @Composable () -> Unit
+) {
+    Column(modifier) {
+        Text(
+            text = stringResource(id = title),
+            style = MaterialTheme.typography.bodyLarge,
+            color = Blue,
+            modifier = Modifier
+                .paddingFromBaseline(top = 40.dp, bottom = 16.dp)
+                .padding(horizontal = 16.dp)
+        )
+        followingComposable()
+    }
+}
+
+@Composable
+fun SearchBar(modifier: Modifier = Modifier) {
     var queryText by rememberSaveable { mutableStateOf("") }
     val ctx = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -237,7 +313,7 @@ fun SearchField(modifier: Modifier = Modifier) {
         ),
         keyboardActions = KeyboardActions(
             onSearch = {
-                if(queryText.isNotBlank()) {
+                if (queryText.isNotBlank()) {
                     stayTunedToastMessage(ctx, "You searched for $queryText")
                 }
             },
@@ -247,36 +323,9 @@ fun SearchField(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun Header(
-    modifier: Modifier = Modifier,
-    selectedScheduleRecipe: MutableState<Dish?> = mutableStateOf(null)
-) {
-    val ctx = LocalContext.current
-
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        SearchField(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 8.dp)
-        )
-        ScheduledRecipeDisplay(
-            dishName = "Italian Spaghetti Pasta",
-            dishImage = selectedScheduleRecipe.value?.imageUrl,
-//            scheduleTime = "Scheduled ${selectedScheduleRecipe.value?.scheduleTime ?: "6:30 AM"}",
-            onClickNotification = { stayTunedToastMessage(ctx, "No new Notifications.") },
-            onClickLogOut = { stayTunedToastMessage(ctx) }
-        )
-    }
-}
-
-@Composable
-fun ScheduledRecipeDisplay(
+fun ScheduledDish(
     modifier: Modifier = Modifier,
     dishName: String = "Italian Spaghetti Pasta",
-    dishImage: String? = null,
     scheduleTime: String = "Scheduled 6:30 AM",
     onClickNotification: () -> Unit = {},
     onClickLogOut: () -> Unit = {}
@@ -286,16 +335,15 @@ fun ScheduledRecipeDisplay(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.End
     ) {
-        // Recipe status pill
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .heightIn(min = 56.dp)
-                .background(Color(0xFF172a34), shape = CircleShape)
+                .background(DarkBlue, shape = CircleShape)
                 .padding(horizontal = 8.dp)
         ) {
-            AsyncImage(
-                model = dishImage ?: R.drawable.snacks,
+            Image(
+                painterResource(id = R.drawable.spaghetti),
                 contentDescription = "Scheduled Recipe Image",
                 modifier = Modifier
                     .clip(CircleShape)
@@ -322,7 +370,6 @@ fun ScheduledRecipeDisplay(
             }
         }
 
-        // Action buttons
         IconButton(
             modifier = Modifier.padding(start = 10.dp),
             onClick = onClickNotification
@@ -344,24 +391,6 @@ fun ScheduledRecipeDisplay(
     }
 }
 
-@Composable
-fun ContentSection(
-    modifier: Modifier = Modifier,
-    @StringRes title: Int,
-    content: @Composable () -> Unit
-) {
-    Column(modifier) {
-        Text(
-            text = stringResource(id = title),
-            style = MaterialTheme.typography.bodyLarge,
-            color = Blue,
-            modifier = Modifier
-                .paddingFromBaseline(top = 40.dp, bottom = 16.dp)
-                .padding(horizontal = 16.dp)
-        )
-        content()
-    }
-}
 
 @Composable
 fun CategoryCarousel(modifier: Modifier = Modifier) {
@@ -371,7 +400,10 @@ fun CategoryCarousel(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         items(whatsOnYourMindDishes) { item ->
-            CategoryItem(drawableId = item.drawable, itemName = item.text)
+            CategoryItem(
+                drawableId = item.drawable,
+                itemName = item.text
+            )
         }
     }
 }
@@ -412,7 +444,7 @@ fun CategoryItem(
 }
 
 @Composable
-fun SuggestedRecipesRow(
+fun RecommendationsRail(
     modifier: Modifier = Modifier,
     dishes: List<Dish>,
     selectedIndex: MutableIntState,
@@ -436,13 +468,22 @@ fun SuggestedRecipesRow(
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
         itemsIndexed(dishes) { index, item ->
-            RecipeCard(item, index, selectedIndex, showBottomSheet, ratingList[index], timeToPrepare[index], difficulty[index], isVegetarian[index])
+            DishCard(
+                item,
+                index,
+                selectedIndex,
+                showBottomSheet,
+                ratingList[index],
+                timeToPrepare[index],
+                difficulty[index],
+                isVegetarian[index]
+            )
         }
     }
 }
 
 @Composable
-fun RecipeCard(
+fun DishCard(
     dish: Dish,
     index: Int,
     selectedIndex: MutableIntState,
@@ -470,9 +511,7 @@ fun RecipeCard(
         shape = RoundedCornerShape(16.dp)
     ) {
         Column(modifier = Modifier.padding(8.dp)) {
-            // Image container with rating
             Box {
-                // Image background
                 Box(
                     modifier = Modifier
                         .height(150.dp)
@@ -499,7 +538,6 @@ fun RecipeCard(
                     )
                 }
 
-                // Rating badge
                 Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -529,7 +567,6 @@ fun RecipeCard(
                 }
             }
 
-            // Recipe name
             Text(
                 text = dish.dishName,
                 style = MaterialTheme.typography.bodyLarge,
@@ -605,55 +642,6 @@ fun BottomActionButtons() {
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
-        }
-    }
-}
-
-@Composable
-private fun NavigationBar(modifier: Modifier = Modifier) {
-    val ctx = LocalContext.current
-
-    NavigationRail(
-        modifier = modifier.padding(start = 8.dp, end = 8.dp),
-        containerColor = Color.White
-    ) {
-        Column(
-            modifier = modifier.fillMaxHeight(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            val navigationItems = listOf(
-                Triple(Icons.Default.Home, "Cook", true),
-                Triple(Icons.Default.FavoriteBorder, "Favorites", false),
-                Triple(Icons.Default.Home, "Manual", false),
-                Triple(Icons.Default.Phone, "Device", false),
-                Triple(Icons.Default.AccountCircle, "Preferences", false),
-                Triple(Icons.Default.Settings, "Settings", false)
-            )
-
-            navigationItems.forEachIndexed { index, (icon, label, isSelected) ->
-                if (index > 0) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                }
-
-                NavigationRailItem(
-                    icon = {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = label,
-                            tint = if (isSelected) Orange else Blue
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = label,
-                            color = if (isSelected) Orange else Blue
-                        )
-                    },
-                    selected = isSelected,
-                    onClick = { if (!isSelected) stayTunedToastMessage(ctx) }
-                )
-            }
         }
     }
 }
