@@ -1,3 +1,16 @@
 <resources>
     <string name="app_name">Let\'s Nosh</string>
+    <string name="whats_on_your_mind">What\'s on your mind?</string>
+    <string name="recommendations">Recommendations</string>
+    <string name="search_hint">Search for dish or ingredient</string>
+    <string name="home">Home</string>
+    <string name="profile">Profile</string>
+    <string name="settings">Settings</string>
+    <string name="updates">\"Stay tuned for further updates!\"</string>
+    <string name="riceItems">\"Rice items\"</string>
+    <string name="indian">\"Indian\"</string>
+    <string name="curries">\"Curries\"</string>
+    <string name="soups">\"Soups\"</string>
+    <string name="dessert">\"Desserts\"</string>
+    <string name="snacks">\"Snacks\"</string>
 </resources>
