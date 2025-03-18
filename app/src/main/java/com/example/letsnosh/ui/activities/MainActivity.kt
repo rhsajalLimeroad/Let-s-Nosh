@@ -111,11 +111,11 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun DishApp(dishViewModel: DishViewModel) {
-    val activeRecipeIndex = rememberSaveable { mutableIntStateOf(-1) }
+    val selectedDishIndex = rememberSaveable { mutableIntStateOf(-1) }
     val selectTimeForCooking = rememberSaveable { mutableStateOf(false) }
     val context = LocalContext.current
 
-    if (selectTimeForCooking.value && activeRecipeIndex.intValue != -1) {
+    if (selectTimeForCooking.value && selectedDishIndex.intValue != -1) {
         CookingTimeBottomSheet(
             onDeleteClick = { stayTunedToastMessage(context) },
             onRescheduleClick = { stayTunedToastMessage(context) },
@@ -124,13 +124,13 @@ fun DishApp(dishViewModel: DishViewModel) {
         )
     }
 
-    DishAppLayout(dishViewModel, activeRecipeIndex, selectTimeForCooking)
+    DishAppLayout(dishViewModel, selectedDishIndex, selectTimeForCooking)
 }
 
 @Composable
 fun DishAppLayout(
     dishViewModel: DishViewModel,
-    activeRecipeIndex: MutableIntState,
+    selectedDishIndex: MutableIntState,
     selectTimeForCooking: MutableState<Boolean>,
 ) {
     val error by dishViewModel.error.observeAsState(initial = null)
@@ -150,7 +150,7 @@ fun DishAppLayout(
             AppContent(
                 modifier = Modifier.padding(padding),
                 dishViewModel = dishViewModel,
-                selectedIndex = activeRecipeIndex,
+                selectedIndex = selectedDishIndex,
                 showBottomSheet = selectTimeForCooking
             )
         }
@@ -295,7 +295,6 @@ fun SearchBar(modifier: Modifier = Modifier) {
     var queryText by rememberSaveable { mutableStateOf("") }
     val ctx = LocalContext.current
     val keyboardController = LocalSoftwareKeyboardController.current
-
 
     TextField(
         modifier = modifier
